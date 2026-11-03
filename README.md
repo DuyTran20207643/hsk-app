@@ -2,6 +2,8 @@
 
 Đồ án tốt nghiệp: website giúp người Việt tự ôn thi **HSK cấp 1–3** (kỳ thi năng lực tiếng Trung Quốc).
 
+🌐 **Bản chạy thật:** https://on-thi-hsk.vercel.app
+
 ## Giới thiệu đề tài
 
 Người Việt tự học tiếng Trung thường thiếu một nơi luyện thi HSK có giao diện tiếng Việt, có đề thi thử và theo dõi được tiến độ. Hệ thống gồm hai nhóm người dùng:
@@ -67,6 +69,13 @@ Mở [http://localhost:3000](http://localhost:3000). Trang chủ sẽ hiển th�
 | `npm run build` | Đóng gói bản chạy thật (production) |
 | `npm run start` | Chạy bản đã đóng gói |
 | `npm run lint` | Kiểm tra lỗi cú pháp, quy tắc viết code |
+
+## Triển khai (deploy)
+
+Website được deploy trên [Vercel](https://vercel.com), link chính thức: **https://on-thi-hsk.vercel.app**
+
+- Mỗi lần `git push` lên nhánh `main`, Vercel tự build và cập nhật website.
+- Biến môi trường (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) được khai báo trong Vercel → Settings → Environment Variables. Sửa biến xong phải **Redeploy** mới có hiệu lực.
 
 ## Cấu trúc thư mục
 

@@ -4,6 +4,8 @@
 
 Đồ án tốt nghiệp: website giúp người Việt tự ôn thi HSK cấp 1–3.
 
+- Link chính thức (production): https://on-thi-hsk.vercel.app — deploy trên Vercel, tự build khi push lên `main`. Link cũ `hsk-app-sigma-five.vercel.app` tự chuyển hướng về đây; luôn dùng link chính thức khi cấu hình (ví dụ Supabase Auth → URL Configuration).
+
 ## Người làm đồ án
 
 Sinh viên, chưa vững về lập trình. Khi làm việc:
