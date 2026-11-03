@@ -50,25 +50,26 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Màu theo phong cách iOS 16 (xem docs/mockups) */
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.962 0.004 286); /* #F2F2F7 nền xám nhạt */
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.522 0.176 256); /* #0066CC xanh iOS */
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(0.935 0.004 286);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --muted: oklch(0.935 0.004 286); /* #E9E9EE nền segmented control */
+  --muted-foreground: oklch(0.56 0.006 286);
+  --accent: oklch(0.962 0.004 286);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.885 0.004 286);
+  --input: oklch(0.885 0.004 286);
+  --ring: oklch(0.522 0.176 256);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

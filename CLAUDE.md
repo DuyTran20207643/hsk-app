@@ -63,7 +63,11 @@ Mọi tính năng nên phục vụ ít nhất một trong ba điểm này:
 - `src/components/ui/` — component shadcn/ui, thêm bằng `npx shadcn@latest add <tên>`
 - `src/lib/supabase/client.ts` — Supabase client cho Client Component (trình duyệt)
 - `src/lib/supabase/server.ts` — Supabase client cho Server Component / Server Action / Route Handler
-- `src/lib/supabase/proxy.ts` + `src/proxy.ts` — làm mới phiên đăng nhập ở mỗi request (Next.js 16 gọi middleware là proxy)
+- `src/lib/supabase/proxy.ts` + `src/proxy.ts` — làm mới phiên đăng nhập và bảo vệ trang ở mỗi request (Next.js 16 gọi middleware là proxy): chưa đăng nhập thì về `/auth?next=…`; tài khoản bị khóa thì đăng xuất; `/admin/*` chỉ cho quản trị viên
+- `src/app/auth/` — trang đăng nhập / đăng ký, Server Actions (`actions.ts`), `callback/route.ts` nhận liên kết xác nhận email
+- `src/lib/auth/session.ts` — `getCurrentUser()` (người đang đăng nhập + vai trò), `getPostLoginPath()` (chưa có mục tiêu thì về `/onboarding`)
+- `src/app/(app)/` — các trang cần đăng nhập, dùng chung thanh điều hướng (`src/components/app-shell/`). Trang quản trị đặt trong `src/app/(app)/admin/`: layout ở đó kiểm tra vai trò ở máy chủ
+- Cache Components đang bật: code đọc cookie / phiên đăng nhập phải nằm trong `<Suspense>`
 - `supabase/migrations/` — các file migration SQL của database
 - `docs/mockups/` — ảnh mockup 16 màn hình đã duyệt
 
