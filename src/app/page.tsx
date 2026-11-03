@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { CircleCheck, CircleX, LoaderCircle } from "lucide-react";
 import { checkSupabaseConnection } from "@/lib/supabase/check-connection";
 
 export default function Home() {
@@ -15,8 +16,9 @@ export default function Home() {
       {/* Tiêu đề hiện ngay, dòng trạng thái hiện sau khi kiểm tra xong. */}
       <Suspense
         fallback={
-          <p className="text-muted-foreground">
-            ⏳ Đang kiểm tra kết nối Supabase…
+          <p className="flex items-center gap-2 text-muted-foreground">
+            <LoaderCircle className="size-4 animate-spin" aria-hidden />
+            Đang kiểm tra kết nối Supabase…
           </p>
         }
       >
@@ -33,15 +35,17 @@ async function SupabaseStatus() {
 
   if (status.ok) {
     return (
-      <p className="rounded-lg border border-green-600/30 bg-green-50 px-4 py-2 text-green-700 dark:bg-green-950 dark:text-green-300">
-        ✅ Kết nối Supabase thành công
+      <p className="flex items-center gap-2 rounded-lg border border-green-600/30 bg-green-50 px-4 py-2 text-green-700 dark:bg-green-950 dark:text-green-300">
+        <CircleCheck className="size-4 shrink-0" aria-hidden />
+        Kết nối Supabase thành công
       </p>
     );
   }
 
   return (
-    <p className="max-w-xl rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-destructive">
-      ❌ Kết nối Supabase thất bại: {status.reason}
+    <p className="flex max-w-xl items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-left text-destructive">
+      <CircleX className="mt-1 size-4 shrink-0" aria-hidden />
+      <span>Kết nối Supabase thất bại: {status.reason}</span>
     </p>
   );
 }
