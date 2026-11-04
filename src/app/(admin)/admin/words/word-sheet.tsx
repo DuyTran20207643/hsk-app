@@ -211,7 +211,7 @@ export function WordSheet({ open, word, levels, topics, onClose, onOpenWord, onD
               id={`${id}-hanViet`}
               value={form.hanViet}
               onChange={(e) => update("hanViet", e.target.value)}
-              placeholder="cơ trường"
+              placeholder={form.isFalseFriend ? "cơ trường" : "Không bắt buộc"}
               autoComplete="off"
               className={sheetInputClass}
               {...errorProps("hanViet")}

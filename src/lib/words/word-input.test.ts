@@ -30,6 +30,17 @@ test("thiếu ô bắt buộc thì báo lỗi đúng ô", () => {
   assert.deepEqual(Object.keys(result.errors ?? {}).sort(), ["hanzi", "levelId", "meaningVi"]);
 });
 
+test("âm Hán Việt không bắt buộc, để trống thì lưu là null", () => {
+  const result = validateWord({ ...word, hanViet: "  " }, lookups);
+  assert.equal(result.errors, undefined);
+  assert.equal(result.values?.han_viet, null);
+});
+
+test("từ Hán Việt dễ nhầm thì phải có âm Hán Việt", () => {
+  const result = validateWord({ ...word, hanViet: "", isFalseFriend: true, falseFriendNote: "Ghi chú." }, lookups);
+  assert.ok(result.errors?.hanViet);
+});
+
 test("BR12: bật dễ nhầm thì ghi chú phân biệt là bắt buộc", () => {
   assert.ok(validateWord({ ...word, isFalseFriend: true }, lookups).errors?.falseFriendNote);
   const ok = validateWord({ ...word, isFalseFriend: true, falseFriendNote: "Không phải trường học." }, lookups);

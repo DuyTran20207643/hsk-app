@@ -10,7 +10,7 @@ export type WordRow = {
   id: string;
   hanzi: string;
   pinyin: string;
-  hanViet: string;
+  hanViet: string | null;
   meaningVi: string;
   exampleZh: string | null;
   exampleVi: string | null;
@@ -30,7 +30,7 @@ type WordDbRow = {
   id: string;
   hanzi: string;
   pinyin: string;
-  han_viet: string;
+  han_viet: string | null;
   meaning_vi: string;
   example_zh: string | null;
   example_vi: string | null;
@@ -64,7 +64,7 @@ export function toWordRow(row: WordDbRow): WordRow {
 export type WordValues = {
   hanzi: string;
   pinyin: string;
-  han_viet: string;
+  han_viet: string | null;
   meaning_vi: string;
   example_zh: string | null;
   example_vi: string | null;
@@ -132,8 +132,10 @@ export function validateWord(
     errors.pinyin = "Pinyin chỉ gồm chữ cái Latin (có dấu hoặc số thanh 1–5).";
   else if (pinyinRaw.length > 60) errors.pinyin = "Pinyin tối đa 60 ký tự.";
 
-  if (!hanViet) errors.hanViet = "Bạn hãy nhập âm Hán Việt.";
-  else if (hanViet.length > 60) errors.hanViet = "Âm Hán Việt tối đa 60 ký tự.";
+  // Âm Hán Việt không bắt buộc (không phải từ nào cũng có), trừ từ Hán Việt dễ nhầm
+  if (hanViet.length > 60) errors.hanViet = "Âm Hán Việt tối đa 60 ký tự.";
+  else if (input.isFalseFriend && !hanViet)
+    errors.hanViet = "Từ Hán Việt dễ nhầm cần có âm Hán Việt.";
 
   if (!meaningVi) errors.meaningVi = "Bạn hãy nhập nghĩa tiếng Việt.";
   else if (meaningVi.length > 200) errors.meaningVi = "Nghĩa tối đa 200 ký tự.";
@@ -158,7 +160,7 @@ export function validateWord(
     values: {
       hanzi,
       pinyin: normalizePinyin(pinyinRaw), // ni3 hao3 → nǐ hǎo
-      han_viet: hanViet,
+      han_viet: hanViet || null,
       meaning_vi: meaningVi,
       example_zh: optional(input.exampleZh),
       example_vi: optional(input.exampleVi),

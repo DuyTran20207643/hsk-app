@@ -190,7 +190,14 @@ export function WordsManager({ words, filteredCount, totalCount, levels, topics,
                   </span>
                 </td>
                 <td className="px-4 py-3 text-body">{word.pinyin}</td>
-                <td className="px-4 py-3 text-body font-semibold text-primary">{word.hanViet}</td>
+                <td className="px-4 py-3 text-body font-semibold text-primary">
+                  {word.hanViet ?? (
+                    <span className="font-normal text-muted-foreground">
+                      <span aria-hidden>—</span>
+                      <span className="sr-only">Không có</span>
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-body">{word.meaningVi}</td>
                 <td className="px-4 py-3 text-body whitespace-nowrap">{levelName.get(word.levelId) ?? "—"}</td>
                 <td className="px-4 py-3 text-body text-muted-foreground">

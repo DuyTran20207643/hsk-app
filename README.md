@@ -63,6 +63,7 @@ Mở **Supabase Dashboard → SQL Editor**, lần lượt dán và chạy từng
 3. `0003_seed.sql`: dữ liệu khởi tạo (3 cấp HSK, 18 chủ đề, 5 từ mẫu)
 4. `0004_word_images_storage.sql`: kho ảnh minh họa từ vựng (bucket `word-images` trong Storage: ai cũng xem được, chỉ quản trị viên tải lên / xóa; chỉ nhận jpg, png, webp tối đa 1 MB)
 5. `0005_words_pinyin_search.sql`: cột `pinyin_plain` để tìm pinyin không cần gõ dấu (gõ `dongxi` vẫn ra 东西)
+6. `0006_words_han_viet_optional.sql`: âm Hán Việt không bắt buộc (không phải từ nào cũng có); riêng từ Hán Việt dễ nhầm vẫn phải có
 
 Mỗi file chỉ chạy **một lần**. Muốn thay đổi database thì tạo file mới với số tiếp theo (`0004_...`), không sửa file đã chạy.
 
