@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { House, LogOut, ShieldCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/app/auth/actions";
+
+// Mỗi mục trong menu cao tối thiểu 44px để dễ bấm
+const ITEM_CLASS = "min-h-11 gap-2.5 px-2 text-body [&_svg:not([class*='size-'])]:size-5";
 
 type Props = {
   name: string;
@@ -28,26 +31,32 @@ export function UserMenu({ name, email, isAdmin }: Props) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`Tài khoản: ${name}`}
-        className="flex size-10 items-center justify-center rounded-full bg-muted text-base font-semibold outline-none hover:bg-border focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex size-11 items-center justify-center rounded-full bg-muted text-headline outline-none hover:opacity-80 focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {initialOf(name)}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={8} className="w-60 rounded-xl p-1.5">
+      <DropdownMenuContent align="end" sideOffset={8} className="w-64 rounded-xl p-1.5">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="px-2 py-1.5">
-            <span className="block truncate text-sm font-semibold text-foreground">{name}</span>
-            <span className="block truncate text-xs font-normal">{email}</span>
+            <span className="block truncate text-headline text-foreground">{name}</span>
+            <span className="block truncate text-footnote font-normal">{email}</span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {isAdmin && (
-          <DropdownMenuItem className="px-2 py-2" render={<Link href="/admin/words" />}>
-            <ShieldCheck aria-hidden />
-            Trang quản trị
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem className={ITEM_CLASS} render={<Link href="/home" />}>
+              <House aria-hidden />
+              Trang học tập
+            </DropdownMenuItem>
+            <DropdownMenuItem className={ITEM_CLASS} render={<Link href="/admin/words" />}>
+              <ShieldCheck aria-hidden />
+              Trang quản trị
+            </DropdownMenuItem>
+          </>
         )}
         <DropdownMenuItem
-          className="px-2 py-2"
+          className={ITEM_CLASS}
           disabled={pending}
           onClick={() => startTransition(() => signOut())}
         >

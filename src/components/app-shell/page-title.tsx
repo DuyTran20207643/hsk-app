@@ -1,13 +1,25 @@
-// Tiêu đề lớn đầu trang (kiểu iOS); dùng tạm cho các trang chưa làm.
-export function PageTitle({ eyebrow, title }: { eyebrow?: string; title: string }) {
+// Tiêu đề trang kiểu iOS: dòng phụ viết hoa nhỏ + tiêu đề lớn (large title).
+// Có thể thêm nút ở bên phải (actions).
+export function PageTitle({
+  eyebrow,
+  title,
+  actions,
+}: {
+  eyebrow?: React.ReactNode;
+  title: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
   return (
-    <div>
-      {eyebrow && (
-        <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {eyebrow}
-        </p>
-      )}
-      <h1 className="mt-1 text-4xl font-bold tracking-tight">{title}</h1>
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        {eyebrow && (
+          <p className="text-footnote font-semibold tracking-wide text-muted-foreground uppercase">
+            {eyebrow}
+          </p>
+        )}
+        <h1 className="text-large-title">{title}</h1>
+      </div>
+      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }

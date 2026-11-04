@@ -6,6 +6,34 @@ function isPublicPath(pathname: string) {
   return pathname === "/" || pathname === "/auth" || pathname.startsWith("/auth/");
 }
 
+// Nhớ tạm vai trò / trạng thái của mỗi người trong 60 giây để không phải hỏi
+// database ở mọi lần bấm (máy chủ Supabase ở xa, mỗi lượt hỏi mất vài trăm ms).
+// Đánh đổi: admin khóa tài khoản hoặc hạ quyền thì tối đa 60 giây sau mới có hiệu lực.
+// Phân quyền dữ liệu vẫn do RLS kiểm tra ở mỗi truy vấn, không bị ảnh hưởng.
+type CachedProfile = { role: string; status: string };
+const PROFILE_TTL_MS = 60_000;
+const PROFILE_CACHE_MAX = 1000;
+const profileCache = new Map<string, CachedProfile & { expiresAt: number }>();
+
+function readCachedProfile(userId: string): CachedProfile | null {
+  const hit = profileCache.get(userId);
+  if (!hit) return null;
+  if (hit.expiresAt <= Date.now()) {
+    profileCache.delete(userId);
+    return null;
+  }
+  return hit;
+}
+
+function cacheProfile(userId: string, profile: CachedProfile) {
+  // Giới hạn số người được nhớ: đầy thì bỏ người được nhớ lâu nhất
+  if (profileCache.size >= PROFILE_CACHE_MAX) {
+    const oldest = profileCache.keys().next().value;
+    if (oldest) profileCache.delete(oldest);
+  }
+  profileCache.set(userId, { role: profile.role, status: profile.status, expiresAt: Date.now() + PROFILE_TTL_MS });
+}
+
 // Làm mới phiên đăng nhập Supabase và bảo vệ các trang trước khi hiển thị.
 // Được gọi từ src/proxy.ts cho mọi request (trừ file tĩnh).
 export async function updateSession(request: NextRequest) {
@@ -72,13 +100,19 @@ export async function updateSession(request: NextRequest) {
   if (isPublicPath(pathname)) return supabaseResponse;
 
   // Trang cần đăng nhập: kiểm tra khóa tài khoản và quyền quản trị ở máy chủ.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, status")
-    .eq("id", userId)
-    .maybeSingle();
+  let profile = readCachedProfile(userId);
+  if (!profile) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("role, status")
+      .eq("id", userId)
+      .maybeSingle();
+    profile = data ?? null;
+    if (profile) cacheProfile(userId, profile);
+  }
 
   if (profile?.status === "locked") {
+    profileCache.delete(userId);
     await supabase.auth.signOut();
     return redirectTo("/auth?error=locked");
   }

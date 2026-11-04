@@ -55,7 +55,7 @@ Mọi tính năng nên phục vụ ít nhất một trong ba điểm này:
 - Next.js (App Router) + TypeScript, mã nguồn trong `src/`
 - Tailwind CSS v4 + shadcn/ui (component trong `src/components/ui/`)
 - Supabase (database PostgreSQL, đăng nhập, lưu trữ file) qua `@supabase/supabase-js` và `@supabase/ssr`
-- Font qua `next/font`: Be Vietnam Pro (giao diện tiếng Việt), Noto Sans SC (chữ Hán, dùng class `font-hanzi`)
+- Font: giao diện dùng font hệ thống Apple (-apple-system, SF Pro Text) nếu có, nếu không thì Inter (tải qua `next/font`); KHÔNG nhúng tệp SF Pro (giấy phép chỉ cho thiết bị Apple). Chữ Hán và pinyin dùng PingFang SC / Noto Sans SC (class `font-hanzi`)
 
 ## Cấu trúc chính
 
@@ -66,7 +66,20 @@ Mọi tính năng nên phục vụ ít nhất một trong ba điểm này:
 - `src/lib/supabase/proxy.ts` + `src/proxy.ts` — làm mới phiên đăng nhập và bảo vệ trang ở mỗi request (Next.js 16 gọi middleware là proxy): chưa đăng nhập thì về `/auth?next=…`; tài khoản bị khóa thì đăng xuất; `/admin/*` chỉ cho quản trị viên
 - `src/app/auth/` — trang đăng nhập / đăng ký, Server Actions (`actions.ts`), `callback/route.ts` nhận liên kết xác nhận email
 - `src/lib/auth/session.ts` — `getCurrentUser()` (người đang đăng nhập + vai trò), `getPostLoginPath()` (chưa có mục tiêu thì về `/onboarding`)
-- `src/app/(app)/` — các trang cần đăng nhập, dùng chung thanh điều hướng (`src/components/app-shell/`). Trang quản trị đặt trong `src/app/(app)/admin/`: layout ở đó kiểm tra vai trò ở máy chủ
+- `src/app/(app)/` — các trang học viên (cần đăng nhập), dùng chung `AppHeader`
+- `src/app/(admin)/admin/` — các trang quản trị, dùng chung `AdminHeader`; `src/app/(admin)/layout.tsx` kiểm tra vai trò ở máy chủ cho mọi trang trong đó
+- `src/components/app-shell/` — `AppHeader`, `AdminHeader`, `PageTitle`, menu ảnh đại diện
+- `src/components/ios/` — thành phần iOS dùng chung: `WidgetCard`, `ListGroup` / `ListRow`, `SegmentedControl`, chip `HanVietChip` / `FalseFriendChip` / `StatusChip`
+- `src/components/ui/button.tsx` — nút iOS: `variant` filled / tinted / gray / plain / destructive, `size` lg / default / sm / icon; dùng cho `<Link>` qua `buttonVariants()`
+- `src/components/ios/sheet.tsx` (`Sheet`, `FormGroup`, `FormRow`), `switch.tsx`, `confirm-dialog.tsx` — sheet bật lên, công tắc, hộp xác nhận kiểu iOS (dựng trên Base UI)
+- `src/lib/pinyin.ts` — đổi pinyin số → dấu thanh (`normalizePinyin`), pinyin trơn để tìm / so trùng (`plainPinyin`, khớp cột `words.pinyin_plain`)
+- `src/lib/words/` — `word-input.ts` (kiểm tra một từ: BR12, khóa trùng BR13, giới hạn ảnh), `import.ts` (cột file Excel, đọc level / is_false_friend)
+- `src/app/(admin)/admin/words/` — Quản trị từ vựng (UC12): `actions.ts` chứa mọi thao tác ghi (lưu, xóa BR14, xem trước / nhập Excel), chạy ở máy chủ bằng phiên của admin, dựa vào RLS
+- Bài test: file `*.test.ts` cạnh file được test, chạy `npm test` (Node test runner, không cần thư viện). File được test phải import bằng đường dẫn tương đối kèm `.ts`, không dùng `@/`
+- Thư viện `xlsx` cài từ `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz` (KHÔNG dùng bản `xlsx` trên npm, đã cũ và có lỗi bảo mật); chỉ tải động (`import("xlsx")`) ở trình duyệt
+- `src/lib/lookups.ts` — danh sách cấp HSK / chủ đề nhớ sẵn ở máy chủ (`"use cache"`, tag `lookups`); trang sửa chủ đề / cấp sau này phải gọi `updateTag("lookups")` sau khi ghi
+- Proxy nhớ tạm vai trò / trạng thái tài khoản 60 giây (`src/lib/supabase/proxy.ts`) để không hỏi database mỗi lần bấm: khóa tài khoản hoặc hạ quyền có hiệu lực trong tối đa 60 giây
+- `src/lib/plan.ts` — quy tắc lộ trình (BR01 ngày thi 7–365 ngày, BR02 số từ mới / thời gian mỗi ngày); dùng chung cho `/onboarding` và `/roadmap`
 - Cache Components đang bật: code đọc cookie / phiên đăng nhập phải nằm trong `<Suspense>`
 - `supabase/migrations/` — các file migration SQL của database
 - `docs/mockups/` — ảnh mockup 16 màn hình đã duyệt
@@ -75,7 +88,10 @@ Mọi tính năng nên phục vụ ít nhất một trong ba điểm này:
 
 ### Giao diện
 
-- Phong cách **iOS 16**: bám theo mockup trong `docs/mockups/`.
+- Phong cách **iOS 16**: bám theo mockup trong `docs/mockups/`. Ưu tiên dùng thành phần có sẵn trong `src/components/ios/` và `src/components/app-shell/` trước khi tự viết mới.
+- Màu: chỉ dùng biến trong `globals.css` (`bg-background`, `bg-card`, `bg-muted`, `text-primary`, `bg-secondary`, `text-muted-foreground`, `text-green` / `bg-green-fill`, `bg-red-fill`, `text-orange` / `bg-orange-fill`, `bg-bar`…), không ghi mã màu trực tiếp. Chế độ tối bật bằng `<html data-theme="dark">` (biến thể `dark:`). Mặc định giao diện theo cài đặt của máy; người dùng đổi bằng nút `ThemeToggle` cạnh ảnh đại diện, lựa chọn lưu trong localStorage (`src/lib/theme.ts`).
+- Chữ: dùng thang chữ iOS `text-large-title`, `text-title1/2/3`, `text-headline`, `text-body`, `text-subheadline`, `text-footnote`, `text-caption` thay cho `text-sm`, `text-xl`… Thêm cỡ chữ mới thì phải khai báo cả trong `src/lib/utils.ts`, nếu không `cn()` sẽ xóa nhầm class màu chữ.
+- Biểu tượng: lucide-react (nét 1.75 đã đặt sẵn). Mọi vùng bấm tối thiểu **44×44px**. Đúng / sai luôn kèm **biểu tượng và chữ**, không chỉ dùng màu (dùng `StatusChip`).
 - Giao diện, thông báo lỗi, nội dung hiển thị: **toàn bộ tiếng Việt**, xưng **"bạn"** với người dùng. Chữ Hán đặt trong phần tử có `lang="zh-CN"` và class `font-hanzi`.
 - **Không dùng emoji** trong giao diện (dùng icon, ví dụ lucide, nếu cần).
 - **Không có** XP, streak hay huy hiệu (không làm các cơ chế game hóa này).
@@ -94,5 +110,5 @@ Mọi tính năng nên phục vụ ít nhất một trong ba điểm này:
 
 ### Quy trình sau mỗi nhiệm vụ
 
-1. Chạy `npm run lint` và `npm run build`, sửa hết lỗi rồi mới báo xong.
+1. Chạy `npm run lint`, `npm test` và `npm run build`, sửa hết lỗi rồi mới báo xong.
 2. Tóm tắt bằng tiếng Việt: đã làm gì, file nào thay đổi, người làm đồ án cần kiểm tra gì.

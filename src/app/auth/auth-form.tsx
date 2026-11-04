@@ -3,12 +3,20 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
-import { ChevronLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronLeft, CircleX, MailCheck } from "lucide-react";
+import { SegmentedControl } from "@/components/ios/segmented-control";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { URL_ERROR_MESSAGES } from "@/lib/auth/messages";
 import { signIn, signUp, type AuthFormState } from "./actions";
 
+// Mockup: docs/mockups/02-dang-nhap.png
+
 type Mode = "signin" | "signup";
+
+const MODE_OPTIONS = [
+  { value: "signin", label: "Đăng nhập" },
+  { value: "signup", label: "Đăng ký" },
+] as const;
 
 const COPY: Record<Mode, { title: string; subtitle: string; submit: string; pending: string }> = {
   signin: {
@@ -53,42 +61,31 @@ export function AuthForm() {
     <div className="flex flex-col">
       <Link
         href="/"
-        className="-ml-1 flex w-fit items-center gap-0.5 text-primary hover:opacity-80"
+        className={buttonVariants({ variant: "plain", className: "-ml-3 w-fit gap-0.5 px-2 font-normal" })}
       >
-        <ChevronLeft className="size-5" aria-hidden />
+        <ChevronLeft aria-hidden />
         Trang giới thiệu
       </Link>
 
-      <div className="mt-8 flex flex-col items-center text-center">
+      <div className="mt-6 flex flex-col items-center text-center">
         <div
-          className="flex size-14 items-center justify-center rounded-2xl bg-primary font-hanzi text-3xl text-primary-foreground"
+          className="flex size-14 items-center justify-center rounded-[14px] bg-primary font-hanzi text-title1 text-primary-foreground"
           lang="zh-CN"
           aria-hidden
         >
           考
         </div>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight">{copy.title}</h1>
-        <p className="mt-2 text-muted-foreground">{copy.subtitle}</p>
+        <h1 className="mt-4 text-large-title">{copy.title}</h1>
+        <p className="mt-1 text-subheadline text-muted-foreground">{copy.subtitle}</p>
       </div>
 
-      {/* Segmented control kiểu iOS */}
-      <div role="tablist" aria-label="Chọn đăng nhập hoặc đăng ký" className="mt-8 grid grid-cols-2 rounded-xl bg-muted p-0.5">
-        {(["signin", "signup"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={mode === m}
-            onClick={() => setMode(m)}
-            className={cn(
-              "rounded-[10px] py-2 text-sm transition-colors",
-              mode === m ? "bg-card font-semibold shadow-sm" : "text-foreground/80 hover:text-foreground",
-            )}
-          >
-            {m === "signin" ? "Đăng nhập" : "Đăng ký"}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        className="mt-8"
+        label="Chọn đăng nhập hoặc đăng ký"
+        options={MODE_OPTIONS}
+        value={mode}
+        onChange={setMode}
+      />
 
       <form
         action={isSignUp ? signUpAction : signInAction}
@@ -98,7 +95,7 @@ export function AuthForm() {
         <input type="hidden" name="next" value={next} />
 
         {/* Nhóm ô nhập kiểu danh sách iOS */}
-        <div className="divide-y divide-border overflow-hidden rounded-xl bg-card">
+        <div className="overflow-hidden rounded-xl bg-card">
           {isSignUp && (
             <Field
               label="Họ tên"
@@ -131,24 +128,22 @@ export function AuthForm() {
 
         <div aria-live="polite">
           {error && (
-            <p className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <p className="mt-4 flex gap-2 rounded-xl bg-red-fill px-4 py-3 text-subheadline text-destructive">
+              <CircleX className="mt-px size-5 shrink-0" aria-hidden />
               {error}
             </p>
           )}
           {isSignUp && signUpState.success && (
-            <p className="mt-4 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary">
+            <p className="mt-4 flex gap-2 rounded-xl bg-secondary px-4 py-3 text-subheadline text-primary">
+              <MailCheck className="mt-px size-5 shrink-0" aria-hidden />
               {signUpState.success}
             </p>
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="mt-6 h-12 rounded-xl bg-primary text-base font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
-        >
+        <Button type="submit" size="lg" disabled={pending} className="mt-6 w-full">
           {pending ? copy.pending : copy.submit}
-        </button>
+        </Button>
       </form>
     </div>
   );
@@ -173,20 +168,23 @@ function Field({
 }) {
   const id = `auth-${name}`;
   return (
-    <div className="flex items-center gap-3 px-4">
-      <label htmlFor={id} className="w-24 shrink-0 py-3.5">
-        {label}
-      </label>
-      <input
-        id={id}
-        name={name}
-        type={type}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 flex-1 bg-transparent py-3.5 outline-none placeholder:text-muted-foreground"
-      />
+    // Hàng nhập kiểu iOS: đường phân cách thụt lề, hàng cuối không có
+    <div className="group/row pl-4">
+      <div className="flex min-h-11 items-center gap-3 border-b border-border pr-4 group-last/row:border-b-0">
+        <label htmlFor={id} className="w-24 shrink-0 py-3 text-body">
+          {label}
+        </label>
+        <input
+          id={id}
+          name={name}
+          type={type}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-w-0 flex-1 bg-transparent py-3 text-body outline-none placeholder:text-muted-foreground"
+        />
+      </div>
     </div>
   );
 }

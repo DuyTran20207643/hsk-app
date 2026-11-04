@@ -3,33 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { segmentItemClass, segmentTrackClass } from "@/components/ios/segment-styles";
 
-// Các mục trên thanh điều hướng; "match" là những đường dẫn làm mục đó sáng lên.
-const TABS = [
-  { href: "/home", label: "Trang chủ", match: ["/home", "/onboarding"] },
-  { href: "/roadmap", label: "Lộ trình", match: ["/roadmap"] },
-  { href: "/review", label: "Ôn tập", match: ["/review", "/practice", "/flashcards", "/vocab", "/grammar"] },
-  { href: "/exams", label: "Thi thử", match: ["/exams"] },
-  { href: "/progress", label: "Tiến độ", match: ["/progress"] },
-];
+export type NavTab = {
+  href: string;
+  label: string;
+  match?: string[]; // các đường dẫn làm mục này sáng lên (mặc định: href)
+};
 
-// Thanh điều hướng dạng segmented control (mockup 04-trang-chu.png)
-export function NavTabs() {
+// Thanh điều hướng dạng segmented control (mockup 04-trang-chu.png, 16a-quan-tri-tu-vung.png)
+export function NavTabs({ tabs, label }: { tabs: NavTab[]; label: string }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Điều hướng chính" className="flex overflow-x-auto rounded-xl bg-muted p-0.5">
-      {TABS.map((tab) => {
-        const active = tab.match.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+    <nav aria-label={label} className={cn(segmentTrackClass, "overflow-x-auto")}>
+      {tabs.map((tab) => {
+        const active = (tab.match ?? [tab.href]).some(
+          (p) => pathname === p || pathname.startsWith(`${p}/`),
+        );
         return (
           <Link
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={cn(
-              "shrink-0 rounded-[10px] px-3 py-1.5 text-sm whitespace-nowrap transition-colors sm:px-4",
-              active ? "bg-card font-semibold shadow-sm" : "text-foreground/80 hover:text-foreground",
-            )}
+            className={segmentItemClass(active)}
           >
             {tab.label}
           </Link>

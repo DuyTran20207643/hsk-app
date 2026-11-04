@@ -18,7 +18,8 @@ Người Việt tự học tiếng Trung thường thiếu một nơi luyện th
 | Framework | [Next.js](https://nextjs.org) (App Router) + TypeScript |
 | Giao diện | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
 | Backend, database, đăng nhập | [Supabase](https://supabase.com) (PostgreSQL) |
-| Font | Be Vietnam Pro (tiếng Việt), Noto Sans SC (chữ Hán) qua `next/font` |
+| Font | Font hệ thống Apple nếu có, nếu không thì Inter; chữ Hán dùng PingFang SC / Noto Sans SC |
+| Đọc / ghi Excel | [SheetJS (xlsx)](https://sheetjs.com) 0.20.3, cài từ cdn.sheetjs.com (bản trên npm cũ và có lỗi bảo mật) |
 
 ## Cài đặt và chạy project
 
@@ -60,6 +61,8 @@ Mở **Supabase Dashboard → SQL Editor**, lần lượt dán và chạy từng
 1. `0001_schema.sql`: tạo 15 bảng
 2. `0002_rls.sql`: bật phân quyền (Row Level Security)
 3. `0003_seed.sql`: dữ liệu khởi tạo (3 cấp HSK, 18 chủ đề, 5 từ mẫu)
+4. `0004_word_images_storage.sql`: kho ảnh minh họa từ vựng (bucket `word-images` trong Storage: ai cũng xem được, chỉ quản trị viên tải lên / xóa; chỉ nhận jpg, png, webp tối đa 1 MB)
+5. `0005_words_pinyin_search.sql`: cột `pinyin_plain` để tìm pinyin không cần gõ dấu (gõ `dongxi` vẫn ra 东西)
 
 Mỗi file chỉ chạy **một lần**. Muốn thay đổi database thì tạo file mới với số tiếp theo (`0004_...`), không sửa file đã chạy.
 
@@ -78,7 +81,7 @@ Nhờ vậy, liên kết xác nhận trong email đăng ký sẽ đưa người 
 npm run dev
 ```
 
-Mở [http://localhost:3000](http://localhost:3000). Trang chủ sẽ hiển thị trạng thái kết nối Supabase (thành công hoặc lỗi kèm lý do).
+Mở [http://localhost:3000](http://localhost:3000) để xem trang giới thiệu.
 
 ### Các lệnh khác
 
@@ -88,6 +91,14 @@ Mở [http://localhost:3000](http://localhost:3000). Trang chủ sẽ hiển th�
 | `npm run build` | Đóng gói bản chạy thật (production) |
 | `npm run start` | Chạy bản đã đóng gói |
 | `npm run lint` | Kiểm tra lỗi cú pháp, quy tắc viết code |
+| `npm test` | Chạy các bài test (file `*.test.ts`, ví dụ đổi pinyin `ni3 hao3` → `nǐ hǎo`) |
+
+## Quản trị từ vựng (`/admin/words`)
+
+- Bảng từ vựng có tìm kiếm (chữ Hán, pinyin không cần dấu, âm Hán Việt, nghĩa), lọc theo cấp, chủ đề, "chỉ từ dễ nhầm", 20 từ mỗi trang.
+- **Thêm / Sửa từ**: pinyin gõ dạng số (`ji1 chang3`) được tự đổi sang dấu thanh. Bật "Từ Hán Việt dễ nhầm" thì phải có ghi chú phân biệt (BR12). Trùng chữ Hán + pinyin với từ đã có thì báo trùng và gợi ý mở từ cũ (BR13).
+- **Xóa từ**: từ đã dùng trong bài học hoặc lịch ôn thì chỉ chuyển sang "Ngừng dùng", chưa dùng thì xóa hẳn (BR14).
+- **Import Excel**: bấm "Tải file mẫu" để lấy file đúng cột (trang `chu_de` trong file mẫu liệt kê tên chủ đề hợp lệ), điền tối đa 1.000 dòng, chọn file để xem trước số dòng hợp lệ / lỗi / trùng, rồi bấm "Nhập các dòng hợp lệ".
 
 ## Tài khoản và phân quyền
 
