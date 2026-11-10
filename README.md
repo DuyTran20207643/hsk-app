@@ -64,6 +64,7 @@ Mở **Supabase Dashboard → SQL Editor**, lần lượt dán và chạy từng
 4. `0004_word_images_storage.sql`: kho ảnh minh họa từ vựng (bucket `word-images` trong Storage: ai cũng xem được, chỉ quản trị viên tải lên / xóa; chỉ nhận jpg, png, webp tối đa 1 MB)
 5. `0005_words_pinyin_search.sql`: cột `pinyin_plain` để tìm pinyin không cần gõ dấu (gõ `dongxi` vẫn ra 东西)
 6. `0006_words_han_viet_optional.sql`: âm Hán Việt không bắt buộc (không phải từ nào cũng có); riêng từ Hán Việt dễ nhầm vẫn phải có
+7. `0007_explicit_grants.sql`: cấp quyền truy cập bảng cho Khách / người đã đăng nhập. **Bắt buộc với project Supabase tạo từ 30/05/2026**: project mới không còn tự cấp quyền này, thiếu file này web sẽ báo lỗi "permission denied". Phân quyền theo dòng (RLS) vẫn do 0002 quyết định
 
 Mỗi file chỉ chạy **một lần**. Muốn thay đổi database thì tạo file mới với số tiếp theo (`0004_...`), không sửa file đã chạy.
 
@@ -75,6 +76,11 @@ Vào **Supabase Dashboard → Authentication → URL Configuration**:
 - **Redirect URLs**: thêm 2 dòng `http://localhost:3000/**` và `https://on-thi-hsk.vercel.app/**`
 
 Nhờ vậy, liên kết xác nhận trong email đăng ký sẽ đưa người dùng về đúng web (trang `/auth/callback`).
+
+Vào **Authentication → Sign In / Providers**:
+
+- Bật **Allow new users to sign up** và **Confirm email**.
+- Bấm **Email**: bật **Enable Email provider**, **Minimum password length** đặt `8` (khớp với web), **Secure email change** bật, **Password requirements** để mặc định. Bấm **Save**.
 
 ### 6. Chạy trên máy
 
@@ -139,6 +145,7 @@ where p.role = 'admin';
 Website được deploy trên [Vercel](https://vercel.com), link chính thức: **https://on-thi-hsk.vercel.app**
 
 - Mỗi lần `git push` lên nhánh `main`, Vercel tự build và cập nhật website.
+- Vùng chạy code (Function Region) khai báo trong `vercel.json`: `sin1` (Singapore), cùng vùng với database Supabase (`ap-southeast-1`) để mỗi lượt hỏi database chỉ mất vài mili giây. Đổi vùng Supabase thì phải đổi `vercel.json` theo.
 - Biến môi trường (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) được khai báo trong Vercel → Settings → Environment Variables. Sửa biến xong phải **Redeploy** mới có hiệu lực.
 
 ## Cấu trúc thư mục
@@ -152,7 +159,7 @@ src/
 ├── components/ui/       # Component giao diện từ shadcn/ui (nút, thẻ, form…)
 ├── lib/
 │   ├── utils.ts         # Hàm tiện ích dùng chung
-│   └── supabase/        # Kết nối Supabase (trình duyệt, máy chủ, kiểm tra kết nối)
+│   └── supabase/        # Kết nối Supabase (trình duyệt, máy chủ, proxy)
 └── proxy.ts             # Chạy trước mỗi request để làm mới phiên đăng nhập
 supabase/migrations/     # File SQL tạo database, chạy theo thứ tự 0001, 0002…
 docs/mockups/            # Ảnh mockup các màn hình đã duyệt

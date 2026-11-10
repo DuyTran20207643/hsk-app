@@ -107,6 +107,9 @@ Mọi tính năng nên phục vụ ít nhất một trong ba điểm này:
 - Mọi bảng phải bật Row Level Security (RLS) và có policy phân quyền Khách / Học viên / Quản trị viên.
 - Migration lưu trong `supabase/migrations/`, đánh số tăng dần: `0001_<mo_ta>.sql`, `0002_<mo_ta>.sql`…
 - **Không sửa migration đã chạy.** Cần thay đổi thì tạo migration mới với số tiếp theo.
+- **Tạo bảng / sequence mới thì phải tự GRANT** cho `anon` / `authenticated` ngay trong migration đó (xem `0007_explicit_grants.sql`): project Supabase tạo từ 30/05/2026 không còn tự cấp quyền trên bảng public. Chỉ cấp đúng quyền cần; cột nhạy cảm (đáp án, điểm, role) dùng GRANT theo cột như 0002.
+- Mọi thứ của database phải nằm trong migration (bucket, policy, hàm…), không tạo tay trên giao diện Supabase, để dựng lại project mới chỉ cần chạy lần lượt các file.
+- Vùng: Supabase và Vercel cùng ở Singapore (`vercel.json` → `sin1`).
 
 ### Quy trình sau mỗi nhiệm vụ
 
