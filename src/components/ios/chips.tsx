@@ -22,6 +22,16 @@ export function FalseFriendChip({ className }: { className?: string }) {
   );
 }
 
+// Điểm ngữ pháp / kỹ năng học viên còn yếu (BR10)
+export function WeakPointChip({ className }: { className?: string }) {
+  return (
+    <span className={cn(chipBase, "bg-orange-fill text-caption font-bold text-orange uppercase", className)}>
+      <TriangleAlert className="size-3.5" aria-hidden />
+      Điểm yếu
+    </span>
+  );
+}
+
 export type AnswerStatus = "correct" | "wrong" | "unsure";
 
 const STATUS = {
