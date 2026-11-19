@@ -224,7 +224,8 @@ export async function deleteWord(id: string): Promise<DeleteWordResult> {
   // Từ đang dùng trong bài học (lesson_items) hoặc lịch ôn (srs_cards) thì không xóa hẳn
   const [lessonUse, srsUse] = await Promise.all([
     supabase.from("lesson_items").select("id", { count: "exact", head: true }).eq("word_id", id),
-    supabase.from("srs_cards").select("id", { count: "exact", head: true }).eq("word_id", id),
+    // srs_cards không có cột id (khóa chính là cặp user_id + word_id) nên đếm theo word_id
+    supabase.from("srs_cards").select("word_id", { count: "exact", head: true }).eq("word_id", id),
   ]);
   if (lessonUse.error || srsUse.error) {
     console.error("[admin/words] Không kiểm tra được từ đang dùng:", lessonUse.error ?? srsUse.error);

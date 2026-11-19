@@ -161,7 +161,7 @@ export function WordsManager({ words, filteredCount, totalCount, levels, topics,
 
       {/* Bảng: màn hẹp thì cuộn ngang trong khung riêng, trang không bị tràn */}
       <div
-        className={cn("overflow-x-auto rounded-[20px] bg-card transition-opacity", isNavigating && "opacity-60")}
+        className={cn("relative overflow-x-auto rounded-[20px] bg-card transition-opacity", isNavigating && "opacity-60")}
         aria-busy={isNavigating}
       >
         <table className="w-full min-w-[960px] border-collapse text-left">
