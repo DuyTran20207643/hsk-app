@@ -49,6 +49,12 @@ export function daysBetween(fromISO: string, toISO: string): number {
   return Math.round((toUTC(toISO) - toUTC(fromISO)) / DAY_MS);
 }
 
+/** "2026-11-15" → "15/11/2026" (cách viết ngày quen thuộc của người Việt) */
+export function formatDateVN(dateISO: string): string {
+  const [y, m, d] = dateISO.split("-");
+  return `${d}/${m}/${y}`;
+}
+
 /** Cộng thêm số ngày vào một ngày "YYYY-MM-DD" */
 export function addDaysISO(dateISO: string, days: number): string {
   return new Date(toUTC(dateISO) + days * DAY_MS).toISOString().slice(0, 10);
