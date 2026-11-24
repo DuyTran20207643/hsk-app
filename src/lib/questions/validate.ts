@@ -97,9 +97,26 @@ const clean = (value: unknown) => str(value).normalize("NFC").replace(/\s+/g, " 
 const cleanMultiline = (value: unknown) => str(value).normalize("NFC").replace(/\r\n/g, "\n").trim();
 const optionalId = (value: unknown) => (value === null || value === undefined || value === "" ? null : Number(value));
 
-/** Bỏ khoảng trắng và dấu câu để so sánh (chấm điểm, kiểm tra câu ghép từ các cụm) */
+/**
+ * Các ký tự bị bỏ qua khi so sánh câu trả lời: khoảng trắng, dấu câu ASCII, dấu câu tiếng Trung / toàn khổ.
+ * Liệt kê rõ từng ký tự (không dùng nhóm Unicode \p{P}) để hàm SQL normalize_answer_text()
+ * ở migration 0009 bỏ đúng y hệt danh sách này. SỬA DANH SÁCH Ở ĐÂY THÌ PHẢI SỬA CẢ HÀM SQL
+ * (bằng migration mới); bài test grading.test.ts sẽ báo lỗi nếu hai bên lệch nhau.
+ */
+export const IGNORED_ANSWER_CHARS =
+  "\t\n\v\f\r  　" +
+  "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" +
+  "，。！？、；：“”‘’（）《》〈〉【】「」『』…—～·．・＿＂＇［］｛｝－＋＝／＼｜＠＃＄％＾＆＊＜＞";
+
+const IGNORED_SET = new Set(IGNORED_ANSWER_CHARS);
+
+/** Bỏ khoảng trắng và dấu câu, đổi chữ Latin thường để so sánh (chấm điểm, kiểm tra câu ghép từ các cụm) */
 export function normalizeForCompare(value: string): string {
-  return value.normalize("NFC").replace(/[\s\p{P}\p{S}]/gu, "").toLowerCase();
+  let out = "";
+  for (const ch of value.normalize("NFC")) {
+    if (!IGNORED_SET.has(ch)) out += ch >= "A" && ch <= "Z" ? ch.toLowerCase() : ch;
+  }
+  return out;
 }
 
 /** Các ô phẳng từ dữ liệu thô (trình duyệt gửi lên, chưa tin được) */
