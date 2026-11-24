@@ -10,6 +10,7 @@ import {
   type QuestionType,
   type UserResponse,
 } from "@/lib/questions/types";
+import { tokenDisplayOrder } from "@/lib/questions/token-order";
 import { TTS_UNAVAILABLE_MESSAGE, useChineseSpeech } from "@/lib/tts";
 import { cn } from "@/lib/utils";
 
@@ -251,7 +252,9 @@ export function QuestionView({ question, response, onResponseChange, disabled, f
             ))}
           </div>
           <div aria-label="Các cụm" className="flex flex-wrap gap-2">
-            {tokens.map((token, i) => {
+            {/* Hiện các cụm theo thứ tự đã xáo (không lộ thứ tự đáp án); i vẫn là số thứ tự gốc của cụm */}
+            {tokenDisplayOrder(tokens).map((i) => {
+              const token = tokens[i];
               const used = order.includes(i);
               return (
                 <button

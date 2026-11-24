@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { gradeQuestion, hasResponse } from "./grade.ts";
 import { importRowToFields, parseImportAnswer, parseQuestionType, QUESTION_IMPORT_COLUMNS, type QuestionImportRow } from "./import.ts";
 import { QUESTION_TYPES, SKILL_OF_TYPE, type QuestionType, type QuestionWithAnswer } from "./types.ts";
+import { tokenDisplayOrder } from "./token-order.ts";
 import { EMPTY_FIELDS, fieldsFromQuestion, normalizeForCompare, validateQuestion, type QuestionFields } from "./validate.ts";
 
 const LOOKUPS = { levelIds: new Set([1, 2, 3]), topicIds: new Set([5]), grammarPointIds: new Set([7]) };
@@ -214,4 +215,22 @@ test("import: sắp xếp câu lấy các cụm từ cột stem, cách nhau bở
 test("import: lựa chọn lấy từ option_a … option_f, bỏ cột trống ở cuối", () => {
   const fields = importRowToFields("reading_match", importRow({ stem: "x", option_a: "a", option_b: "b", option_c: "c" }));
   assert.deepEqual(fields.options, ["a", "b", "c"]);
+});
+
+test("tokenDisplayOrder: xáo cố định, đủ các cụm, không giữ nguyên thứ tự đã nhập", () => {
+  const samples = [
+    ["我", "把作业", "做完了"],
+    ["他", "昨天", "去", "北京", "了"],
+    ["a", "b"],
+    ["的", "的", "书"],
+    ["一", "二", "三", "四", "五", "六", "七", "八"],
+  ];
+  for (const tokens of samples) {
+    const order = tokenDisplayOrder(tokens);
+    assert.deepEqual([...order].sort((x, y) => x - y), tokens.map((_, i) => i), "phải đủ mỗi cụm một lần");
+    assert.notDeepEqual(order.map((i) => tokens[i]), tokens, `không được giữ nguyên thứ tự: ${tokens.join(" ")}`);
+    assert.deepEqual(tokenDisplayOrder([...tokens]), order, "cùng các cụm thì cùng thứ tự");
+  }
+  // Mọi cụm giống nhau thì không xáo được, giữ nguyên
+  assert.deepEqual(tokenDisplayOrder(["好", "好", "好"]).map((i) => ["好", "好", "好"][i]), ["好", "好", "好"]);
 });
