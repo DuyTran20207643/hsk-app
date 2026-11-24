@@ -1,4 +1,4 @@
-// Kiểu dữ liệu và hàm đọc kết quả của bộ máy phiên làm bài (hàm SQL ở migration 0009).
+// Kiểu dữ liệu và hàm đọc kết quả của bộ máy phiên làm bài (hàm SQL ở migration 0009, 0010).
 // Hàm thuần: không gọi database. Không import "@/…" để bài test chạy trực tiếp được.
 import {
   isQuestionType,
@@ -8,7 +8,7 @@ import {
   type UserResponse,
 } from "../questions/types.ts";
 
-export const ATTEMPT_MODES = ["practice", "mixed"] as const;
+export const ATTEMPT_MODES = ["practice", "mixed", "weakness"] as const;
 export type AttemptMode = (typeof ATTEMPT_MODES)[number];
 
 export const MODE_LABEL: Record<string, string> = {
@@ -26,7 +26,23 @@ export type SessionConfig = {
   grammar_point_id?: number;
   count?: number;
   tag?: string;
+  /** Ôn điểm yếu: các nhóm "type:…", "topic:…", "grammar:…" */
+  targets?: string[];
+  /** Ôn điểm yếu: tỷ lệ đúng trước đó (0–100) */
+  baseline?: number;
 };
+
+/** Nhóm của câu trong Ôn tổng hợp / Ôn điểm yếu, theo lịch sử làm bài của học viên */
+export type QuestionGroup = "new" | "wrong" | "correct";
+
+export const GROUP_LABEL: Record<QuestionGroup, string> = {
+  new: "Câu mới",
+  wrong: "Câu từng làm sai",
+  correct: "Câu từng làm đúng",
+};
+
+/** Ôn tổng hợp: câu "Chọn nghĩa của từ" trả lời sai → thẻ của từ đó được hẹn ôn lại */
+export type SrsReschedule = { hanzi: string; dueDate: string };
 
 /** Kết quả một câu đã nộp. Phiên chưa hiện đáp án (thi thử) thì isCorrect / answer là null. */
 export type AnswerResult = {
@@ -35,6 +51,8 @@ export type AnswerResult = {
   isCorrect: boolean | null;
   answer: QuestionAnswer | null;
   explanation: string | null;
+  /** Chỉ có ngay sau khi nộp (không lưu lại khi mở lại phiên) */
+  srs: SrsReschedule | null;
 };
 
 export type SessionQuestion = {
@@ -54,6 +72,12 @@ export type SessionView = {
   startedAt: string;
   submittedAt: string | null;
   correctCount: number | null;
+  /** Số câu đã yêu cầu khi tạo phiên (ngân hàng thiếu câu thì nhiều hơn số câu thật) */
+  requestedCount: number | null;
+  /** Nhóm của từng câu (theo id câu hỏi); phiên luyện tập thường không có */
+  groups: Record<string, QuestionGroup>;
+  targets: string[];
+  baseline: number | null;
   questions: SessionQuestion[];
 };
 
@@ -83,7 +107,22 @@ export function toAnswerResult(raw: unknown): AnswerResult | null {
     isCorrect: typeof raw.is_correct === "boolean" ? raw.is_correct : null,
     answer: isObject(raw.answer) ? (raw.answer as QuestionAnswer) : null,
     explanation: str(raw.explanation),
+    srs: toSrsReschedule(raw.srs),
   };
+}
+
+function toSrsReschedule(raw: unknown): SrsReschedule | null {
+  if (!isObject(raw) || typeof raw.hanzi !== "string" || typeof raw.due_date !== "string") return null;
+  return { hanzi: raw.hanzi, dueDate: raw.due_date };
+}
+
+const GROUPS: readonly QuestionGroup[] = ["new", "wrong", "correct"];
+
+function toGroups(raw: unknown): Record<string, QuestionGroup> {
+  if (!isObject(raw)) return {};
+  return Object.fromEntries(
+    Object.entries(raw).filter((entry): entry is [string, QuestionGroup] => GROUPS.includes(entry[1] as QuestionGroup)),
+  );
 }
 
 /** Kết quả của get_attempt() → dữ liệu cho giao diện; dữ liệu sai dạng thì null */
@@ -110,6 +149,10 @@ export function toSessionView(raw: unknown): SessionView | null {
     startedAt: str(raw.started_at) ?? "",
     submittedAt: str(raw.submitted_at),
     correctCount: num(raw.correct_count),
+    requestedCount: num(config.count),
+    groups: toGroups(config.groups),
+    targets: Array.isArray(config.targets) ? config.targets.filter((t): t is string => typeof t === "string") : [],
+    baseline: num(config.baseline),
     questions,
   };
 }

@@ -1,9 +1,6 @@
-import type { Metadata } from "next";
-import { PageTitle } from "@/components/app-shell/page-title";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Ôn tổng hợp · Hệ thống ôn thi HSK" };
-
-// Trang tạm. Khi làm thật, bám theo mockup: docs/mockups/07-on-tong-hop.png
+// Các phiên làm bài mở ở /practice/<mã phiên>; bắt đầu phiên mới từ trang Ôn tập.
 export default function PracticePage() {
-  return <PageTitle eyebrow="Ôn tập" title="Ôn tổng hợp" />;
+  redirect("/review");
 }

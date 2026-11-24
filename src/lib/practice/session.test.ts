@@ -6,7 +6,16 @@ const raw = {
   id: "attempt-1",
   attempt_type: "mixed",
   status: "in_progress",
-  config: { mode: "mixed", feedback: "immediate", level_id: 3, tag: "dev" },
+  config: {
+    mode: "mixed",
+    feedback: "immediate",
+    level_id: 3,
+    tag: "dev",
+    count: 30,
+    groups: { q1: "wrong", q2: "la" },
+    targets: ["type:writing_order", 3],
+    baseline: 55,
+  },
   started_at: "2026-11-19T01:00:00Z",
   submitted_at: null,
   correct_count: null,
@@ -46,8 +55,13 @@ test("toSessionView đọc kết quả get_attempt, bỏ câu sai dạng", () =>
     isCorrect: false,
     answer: { index: 0 },
     explanation: "Giải thích",
+    srs: null,
   });
   assert.equal(view.questions[1].result, null);
+  assert.equal(view.requestedCount, 30);
+  assert.deepEqual(view.groups, { q1: "wrong" });
+  assert.deepEqual(view.targets, ["type:writing_order"]);
+  assert.equal(view.baseline, 55);
   assert.equal(view.questions[1].question.type, "writing_hanzi");
   assert.equal(toSessionView(null), null);
   assert.equal(toSessionView({ id: 1 }), null);
@@ -70,11 +84,12 @@ test("toAnswerResult: phiên chưa hiện đáp án thì isCorrect / answer là 
     isCorrect: null,
     answer: null,
     explanation: null,
+    srs: null,
   });
 });
 
 test("firstUnanswered và summarize", () => {
-  const ok = { userAnswer: null, isFlagged: false, isCorrect: true, answer: null, explanation: null };
+  const ok = { userAnswer: null, isFlagged: false, isCorrect: true, answer: null, explanation: null, srs: null };
   const unsure = { ...ok, isCorrect: true, isFlagged: true };
   const wrong = { ...ok, isCorrect: false };
   assert.equal(firstUnanswered([{ result: ok }, { result: null }, { result: null }]), 1);
@@ -87,4 +102,14 @@ test("firstUnanswered và summarize", () => {
     wrong: 1,
     flagged: 1,
   });
+});
+
+test("toAnswerResult đọc thông tin thẻ từ được hẹn ôn lại", () => {
+  const base = { user_answer: { index: 1 }, is_flagged: false, is_correct: false, answer: { index: 0 } };
+  assert.deepEqual(toAnswerResult({ ...base, srs: { word_id: "w", hanzi: "机场", due_date: "2026-11-25" } })?.srs, {
+    hanzi: "机场",
+    dueDate: "2026-11-25",
+  });
+  assert.equal(toAnswerResult(base)?.srs, null);
+  assert.equal(toAnswerResult({ ...base, srs: { hanzi: 1 } })?.srs, null);
 });

@@ -21,6 +21,7 @@ const MIGRATIONS = [
   "0007_explicit_grants.sql",
   "0008_question_images_storage.sql",
   "0009_practice_sessions.sql",
+  "0010_review_modes.sql",
 ];
 
 const SUPABASE_STUB = `

@@ -93,20 +93,20 @@ describe("start_attempt: tạo phiên", () => {
     assert.ok([Q.hanzi, Q.order].includes(ids[0]));
   });
 
-  test("các câu cùng kỹ năng đứng liền nhau (từ vựng trước, viết sau)", async () => {
-    const id = await start(LEARNER, "mixed", { level_id: 1, count: 50 });
+  test("luyện tập: các câu cùng kỹ năng đứng liền nhau (từ vựng trước, viết sau)", async () => {
+    const id = await start(LEARNER, "practice", { level_id: 1, count: 50 });
     const ids = await questionIds(id);
     assert.equal(ids[0], Q.vocab);
     assert.deepEqual(new Set(ids.slice(2)), new Set([Q.hanzi, Q.order]));
   });
 
   test("lưu đúng người, chế độ, trạng thái và tham số", async () => {
-    const id = await start(LEARNER, "mixed", { level_id: 2, tag: "dev" });
+    const id = await start(LEARNER, "practice", { level_id: 2, tag: "dev" });
     const { rows } = await db.query<Json>("select user_id, attempt_type, status, config from public.attempts where id = $1", [id]);
     assert.equal(rows[0].user_id, LEARNER);
-    assert.equal(rows[0].attempt_type, "mixed");
+    assert.equal(rows[0].attempt_type, "practice");
     assert.equal(rows[0].status, "in_progress");
-    assert.deepEqual(rows[0].config, { mode: "mixed", feedback: "immediate", level_id: 2, count: 10, tag: "dev" });
+    assert.deepEqual(rows[0].config, { mode: "practice", feedback: "immediate", level_id: 2, count: 10, tag: "dev" });
   });
 
   test("từ chối chế độ chưa hỗ trợ, tham số sai, khách và tài khoản bị khóa", async () => {

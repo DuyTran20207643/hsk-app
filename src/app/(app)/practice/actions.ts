@@ -1,7 +1,7 @@
 "use server";
 
 // Các thao tác của bộ máy phiên làm bài. Chạy ở máy chủ bằng phiên đăng nhập của học viên
-// và chỉ gọi các hàm SQL security definer ở migration 0009 (start_attempt, submit_answer,
+// và chỉ gọi các hàm SQL security definer ở migration 0009 / 0010 (start_attempt, submit_answer,
 // finish_attempt). Việc chọn câu, kiểm tra quyền, chấm điểm và lưu đều nằm trong database;
 // đáp án không bao giờ đi qua trình duyệt trước khi học viên nộp câu đó.
 // KHÔNG dùng service_role key.
@@ -9,7 +9,15 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ATTEMPT_MODES, toAnswerResult, type AnswerResult, type AttemptMode, type SessionConfig } from "@/lib/practice/session";
+import { isQuestionType } from "@/lib/questions/types";
 import { createClient } from "@/lib/supabase/server";
+import {
+  analyzeWeaknesses,
+  combinedCorrectRate,
+  loadAnswerRecords,
+  percent,
+  recentAnswers,
+} from "@/lib/weakness";
 
 const NOT_SIGNED_IN = "Phiên đăng nhập đã hết hạn. Bạn vui lòng đăng nhập lại.";
 const GENERIC_ERROR = "Đã có lỗi xảy ra. Bạn vui lòng thử lại.";
@@ -42,6 +50,10 @@ function cleanConfig(config: unknown): SessionConfig {
     out.question_types = raw.question_types.filter((t): t is string => typeof t === "string").slice(0, 11);
   }
   if (typeof raw.tag === "string") out.tag = raw.tag.slice(0, 20);
+  if (Array.isArray(raw.targets)) {
+    out.targets = raw.targets.filter((t): t is string => typeof t === "string").slice(0, 10);
+  }
+  if (typeof raw.baseline === "number" && Number.isFinite(raw.baseline)) out.baseline = raw.baseline;
   return out;
 }
 
@@ -115,4 +127,82 @@ export async function startDevSession(_prev: DevStartState, formData: FormData):
   const result = await startPracticeSession("practice", config);
   if (!result.ok) return { error: result.error };
   redirect(`/practice/dev?attempt=${result.attemptId}`);
+}
+
+// ---------------------------------------------------------------------
+// Trang Ôn tập (/review): bắt đầu 3 chế độ luyện tập rồi chuyển sang trang làm bài
+// ---------------------------------------------------------------------
+
+export type ReviewFormState = { error: string } | null;
+
+/** Cấp HSK gửi từ form (1–9), sai dạng thì null; database kiểm tra lại cấp có tồn tại không */
+function formLevel(value: FormDataEntryValue | null): number | null {
+  const level = Number(value);
+  return Number.isInteger(level) && level >= 1 && level <= 9 ? level : null;
+}
+
+/** Ôn tổng hợp (BR17, BR18): 30 câu của cấp đã chọn */
+export async function startMixedReview(_prev: ReviewFormState, formData: FormData): Promise<ReviewFormState> {
+  const level = formLevel(formData.get("level"));
+  if (!level) return { error: "Bạn chọn cấp HSK trước nhé." };
+  const result = await startPracticeSession("mixed", { level_id: level, count: 30 });
+  if (!result.ok) return { error: result.error };
+  redirect(`/practice/${result.attemptId}`);
+}
+
+/** Luyện theo dạng câu (UC06): 10 câu của dạng và cấp đã chọn */
+export async function startTypePractice(_prev: ReviewFormState, formData: FormData): Promise<ReviewFormState> {
+  const level = formLevel(formData.get("level"));
+  const type = formData.get("type");
+  if (!level || !isQuestionType(type)) return { error: GENERIC_ERROR };
+  const result = await startPracticeSession("practice", { level_id: level, question_types: [type], count: 10 });
+  if (!result.ok) return { error: result.error };
+  redirect(`/practice/${result.attemptId}`);
+}
+
+/**
+ * Ôn điểm yếu (UC09): form gửi khóa của một điểm yếu ("type:…") hoặc "all" (Ôn tất cả).
+ * Tính lại điểm yếu ở đây (không tin danh sách trình duyệt gửi lên), lấy tỷ lệ đúng trước đó
+ * của các điểm yếu được chọn làm mốc so sánh khi xem kết quả.
+ */
+export async function startWeaknessReview(_prev: ReviewFormState, formData: FormData): Promise<ReviewFormState> {
+  const user = await activeUser();
+  if (!user) return { error: NOT_SIGNED_IN };
+  const choice = formData.get("target");
+  if (typeof choice !== "string") return { error: GENERIC_ERROR };
+
+  const supabase = await createClient();
+  const { data: goal, error: goalError } = await supabase
+    .from("study_goals")
+    .select("level_id")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (goalError) {
+    console.error("[practice] Không đọc được mục tiêu:", goalError);
+    return { error: GENERIC_ERROR };
+  }
+  if (!goal) return { error: "Bạn cần đặt mục tiêu ôn thi trước." };
+
+  const now = new Date();
+  const records = await loadAnswerRecords(supabase, user.id, now);
+  if (!records) return { error: GENERIC_ERROR };
+  const report = analyzeWeaknesses(records, goal.level_id, now);
+  if (report.status !== "ok") return { error: "Bạn chưa làm đủ câu để tìm điểm yếu." };
+
+  const chosen = choice === "all" ? report.weaknesses.slice(0, 10) : report.weaknesses.filter((w) => w.key === choice);
+  if (chosen.length === 0) {
+    return { error: "Điểm yếu này đã thay đổi. Bạn tải lại trang để xem danh sách mới nhé." };
+  }
+
+  const baseline = combinedCorrectRate(
+    recentAnswers(records, goal.level_id, now),
+    chosen.map((w) => w.target),
+  );
+  const config: SessionConfig = { level_id: goal.level_id, targets: chosen.map((w) => w.key), count: 10 };
+  if (baseline !== null) config.baseline = percent(baseline);
+
+  const result = await startPracticeSession("weakness", config);
+  if (!result.ok) return { error: result.error };
+  redirect(`/practice/${result.attemptId}`);
 }

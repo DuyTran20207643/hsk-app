@@ -2,13 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ChevronLeft, CircleCheck, CircleHelp, CircleMinus, CircleX } from "lucide-react";
+import { CalendarClock, ChevronLeft, CircleCheck, CircleHelp, CircleMinus, CircleX, Info, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { finishPracticeSession, submitPracticeAnswer } from "@/app/(app)/practice/actions";
 import { ConfirmDialog } from "@/components/ios/confirm-dialog";
 import { StatusChip } from "@/components/ios/chips";
 import { QuestionView } from "@/components/question/question-view";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { firstUnanswered, summarize, type AnswerResult, type SessionQuestion, type SessionView } from "@/lib/practice/session";
+import { addDaysISO, formatDateVN, todayISO } from "@/lib/plan";
+import {
+  firstUnanswered,
+  GROUP_LABEL,
+  summarize,
+  type AnswerResult,
+  type SessionQuestion,
+  type SessionView,
+  type SrsReschedule,
+} from "@/lib/practice/session";
 import { hasResponse } from "@/lib/questions/grade";
 import { QUESTION_TYPE_LABEL, SKILL_LABEL, type UserResponse } from "@/lib/questions/types";
 import { cn } from "@/lib/utils";
@@ -23,11 +32,13 @@ type Props = {
   title: string;
   backHref: string;
   backLabel: string;
-  /** Nhãn nhóm phía trên câu hỏi; mặc định là kỹ năng (Từ vựng, Nghe…) */
-  groupLabel?: (question: SessionQuestion) => string;
+  /** Ghi chú dưới thanh tiến độ, ví dụ "Hiện có 7 câu…" */
+  notice?: string;
+  /** Ôn điểm yếu: so tỷ lệ đúng của bài với tỷ lệ đúng trước đó (0–100) */
+  comparison?: { baseline: number; subject: string } | null;
 };
 
-export function PracticeSession({ session, title, backHref, backLabel, groupLabel }: Props) {
+export function PracticeSession({ session, title, backHref, backLabel, notice, comparison }: Props) {
   const questions = session.questions;
   const total = questions.length;
 
@@ -135,6 +146,13 @@ export function PracticeSession({ session, title, backHref, backLabel, groupLabe
         </div>
       )}
 
+      {notice && !finished && (
+        <p className="flex items-start gap-2 rounded-xl bg-card px-4 py-3 text-subheadline text-muted-foreground">
+          <Info className="mt-0.5 size-5 shrink-0" aria-hidden />
+          {notice}
+        </p>
+      )}
+
       {error && (
         <p role="alert" className="flex items-center gap-2 rounded-xl bg-red-fill px-4 py-3 text-subheadline text-destructive">
           <CircleX className="size-5 shrink-0" aria-hidden />
@@ -147,7 +165,7 @@ export function PracticeSession({ session, title, backHref, backLabel, groupLabe
           Phiên này không còn câu hỏi nào.
         </div>
       ) : finished ? (
-        <Summary questions={summaryQuestions} backHref={backHref} backLabel={backLabel} />
+        <Summary questions={summaryQuestions} backHref={backHref} backLabel={backLabel} comparison={comparison ?? null} />
       ) : !current ? (
         // Đã trả lời hết nhưng chưa bấm xem kết quả (ví dụ đóng trang giữa chừng)
         <div role="status" className="flex flex-col items-center gap-3 rounded-[20px] bg-card p-6 text-center">
@@ -166,7 +184,8 @@ export function PracticeSession({ session, title, backHref, backLabel, groupLabe
             className="flex flex-col gap-4 rounded-[20px] bg-card p-4 outline-none sm:p-6"
           >
             <span className="self-center rounded-md bg-muted px-2 py-0.5 text-caption font-semibold tracking-wide text-muted-foreground uppercase">
-              {groupLabel ? groupLabel(current) : SKILL_LABEL[current.skill]}
+              {SKILL_LABEL[current.skill]}
+              {session.groups[current.id] && ` · ${GROUP_LABEL[session.groups[current.id]]}`}
             </span>
             <QuestionView
               key={current.id}
@@ -266,6 +285,7 @@ function ResultPanel({
             {result.explanation}
           </p>
         )}
+        {result.srs && <SrsNote srs={result.srs} />}
       </div>
       <Button ref={nextRef} onClick={onNext} disabled={pending} className="self-end">
         {isLast ? (pending ? "Đang tổng kết…" : "Xem kết quả") : "Câu tiếp theo"}
@@ -274,14 +294,71 @@ function ResultPanel({
   );
 }
 
+/** Ôn tổng hợp: sai câu chọn nghĩa → thẻ từ đó được hẹn ôn lại */
+function SrsNote({ srs }: { srs: SrsReschedule }) {
+  const today = todayISO();
+  const when =
+    srs.dueDate <= today
+      ? "đã có trong lượt ôn thẻ từ hôm nay"
+      : srs.dueDate === addDaysISO(today, 1)
+        ? `sẽ được ôn lại vào ngày mai (${formatDateVN(srs.dueDate)})`
+        : `sẽ được ôn lại vào ngày ${formatDateVN(srs.dueDate)}`;
+  return (
+    <p className="flex items-start gap-2 text-subheadline">
+      <CalendarClock className="mt-0.5 size-5 shrink-0" aria-hidden />
+      <span>
+        Thẻ từ{" "}
+        <span lang="zh-CN" className="font-hanzi font-semibold">
+          {srs.hanzi}
+        </span>{" "}
+        {when}.
+      </span>
+    </p>
+  );
+}
+
+/** Ôn điểm yếu: tỷ lệ đúng của bài này so với trước đó (câu chưa chắc tính là sai, giống cách tìm điểm yếu) */
+function Comparison({ questions, baseline, subject }: { questions: SessionQuestion[]; baseline: number; subject: string }) {
+  const answered = questions.filter((q) => q.result !== null);
+  if (answered.length === 0) return null;
+  const sure = answered.filter((q) => q.result?.isCorrect === true && !q.result.isFlagged).length;
+  const now = Math.round((sure / answered.length) * 100);
+  const diff = now - baseline;
+  const Trend = diff > 0 ? TrendingUp : diff < 0 ? TrendingDown : Minus;
+  return (
+    <section aria-labelledby="compare-heading" className="flex flex-col gap-3 rounded-[20px] bg-card p-4 sm:p-6">
+      <h3 id="compare-heading" className="text-headline">
+        So với trước đó · {subject}
+      </h3>
+      <dl className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl bg-muted p-3">
+          <dt className="text-footnote text-muted-foreground">Trước đó (30 ngày qua)</dt>
+          <dd className="text-title1 tabular-nums">đúng {baseline}%</dd>
+        </div>
+        <div className="rounded-xl bg-muted p-3">
+          <dt className="text-footnote text-muted-foreground">Bài ôn này</dt>
+          <dd className="text-title1 tabular-nums">đúng {now}%</dd>
+        </div>
+      </dl>
+      <p className={cn("flex items-center gap-2 text-subheadline font-semibold", diff > 0 ? "text-green" : diff < 0 ? "text-destructive" : "text-muted-foreground")}>
+        <Trend className="size-5" aria-hidden />
+        {diff > 0 ? `Tăng ${diff} điểm phần trăm` : diff < 0 ? `Giảm ${-diff} điểm phần trăm` : "Không đổi"}
+      </p>
+      <p className="text-footnote text-muted-foreground">Câu đúng nhưng bạn chưa chắc chắn được tính là sai, giống cách tìm điểm yếu.</p>
+    </section>
+  );
+}
+
 function Summary({
   questions,
   backHref,
   backLabel,
+  comparison,
 }: {
   questions: SessionQuestion[];
   backHref: string;
   backLabel: string;
+  comparison: { baseline: number; subject: string } | null;
 }) {
   const s = summarize(questions);
   const rate = s.answered > 0 ? Math.round((s.correct / s.answered) * 100) : 0;
@@ -311,6 +388,8 @@ function Summary({
           {s.total > s.answered ? `; ${s.total - s.answered} câu chưa làm không được tính` : ""}.
         </p>
       </div>
+
+      {comparison && <Comparison questions={questions} baseline={comparison.baseline} subject={comparison.subject} />}
 
       <ol aria-label="Kết quả từng câu" className="flex flex-col overflow-hidden rounded-[20px] bg-card">
         {questions.map((q, i) => (

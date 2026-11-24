@@ -1,10 +1,9 @@
 // Tỷ lệ đúng của học viên với các câu hỏi gắn một điểm ngữ pháp (UC18).
 // Hàm thuần, không đọc database, để dễ viết bài test.
+// Ngưỡng điểm yếu (BR10) lấy chung từ src/lib/weakness.ts.
+import { WEAK_MIN_ANSWERS, WEAK_WRONG_RATE } from "../weakness.ts";
 
-/** BR10: từ 5 câu trả lời trở lên mới đủ dữ liệu để kết luận */
-export const WEAK_MIN_ANSWERS = 5;
-/** BR10: tỷ lệ sai từ 30% trở lên là điểm yếu */
-export const WEAK_WRONG_RATE = 0.3;
+export { WEAK_MIN_ANSWERS, WEAK_WRONG_RATE };
 
 export type AnswerOutcome = { is_correct: boolean | null; is_flagged: boolean };
 
